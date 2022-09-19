@@ -84,8 +84,26 @@ using Jacobi relaxation, where\footnote{You might recognise
 Here $\Delta = \Delta x = \Delta y = \Delta z$ is the spacing between
 voxels in metres, $0 \le i < N$, $0 \le j < N$, and $0 \le k <
 N$. Voxels on the boundary ($i = 0$, $i=N-1$, $j = 0$, $j=N-1$, $k =
-0$, $k=N-1$) are defined such that the derivative over that boundary is
-zero ($\partial V / \partial n = 0$), see Fig.  \ref{fig:Boundary}.
+0$, $k=N-1$) are defined such that the derivative over that boundary
+is zero ($\partial V / \partial n = 0$), see Fig.~\ref{fig:Boundary}.
+For example, consider the derivative in the x-direction, $\partial V /
+\partial x$.  This can be approximated by the central difference,
+%
+\begin{equation}
+  \frac{V_{i+1,j,k} - V_{i-1,j,k}}{2\Delta}.
+\end{equation}
+%
+On the boundary where $i=0$, then
+%
+\begin{equation}
+  \frac{V_{1,j,k} - V_{-1,j,k}}{2\Delta},
+\end{equation}
+%
+and for this to be zero implies $V_{-1,j,k} = V_{1,j,k}$.  Since these
+voltages are the same, no current flows normal to the boundary as
+expected for an insulating boundary.  Similarly, on the other
+x-boundary, $V_{N,j,k} = V_{N-2,j,k}$.
+
 
 \begin{figure}
   \centering
