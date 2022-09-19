@@ -73,7 +73,8 @@ equivalent to enclosing the problem in an insulating box so that no
 current flows across the boundary.
 
 Poisson's equation can be solved iteratively, at each time-step $n$,
-using Jacobi relaxation, where
+using Jacobi relaxation, where\footnote{You might recognise
+  (\ref{eqn:Jacobi}) as a 3-D discrete convolution at each time-step.}
 %
 \begin{equation}
   V_{i,j,k,n+1} = \frac{1}{6} \left(V_{i+1,j,k,n} + V_{i-1,j,k,n} + V_{i,j+1,k,n} + V_{i,j-1,k,n} + V_{i,j,k+1,n} + V_{i,j,k-1,n} - \Delta^2 f_{i,j,k}\right).
@@ -82,11 +83,9 @@ using Jacobi relaxation, where
 %
 Here $\Delta = \Delta x = \Delta y = \Delta z$ is the spacing between
 voxels in metres, $0 \le i < N$, $0 \le j < N$, and $0 \le k <
-N$. Voxels on the boundary ($i = -1$, $i=N$, $j = -1$, $j=N$, $k =
--1$, $k=N$) are defined such that the derivative over that boundary is
+N$. Voxels on the boundary ($i = 0$, $i=N-1$, $j = 0$, $j=N-1$, $k =
+0$, $k=N-1$) are defined such that the derivative over that boundary is
 zero ($\partial V / \partial n = 0$), see Fig.  \ref{fig:Boundary}.
-You might recognise (\ref{eqn:Jacobi}) as a 3-D discrete convolution
-at each time-step.
 
 \begin{figure}
   \centering
