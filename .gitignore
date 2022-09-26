@@ -8,3 +8,7 @@ threads
 cachegrind.out.*
 
 _minted-*/
+
+venv/
+.vscode/
+poisson.png
