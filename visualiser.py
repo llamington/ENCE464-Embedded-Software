@@ -3,7 +3,10 @@ import numpy as np
 import sys
 
 
-lines = sys.stdin.readlines()
+prog_out = sys.stdin.read()
+prog_out = prog_out.split("Result:\n")[1]
+lines = prog_out.splitlines()
+
 n = len(lines)
 mat = np.empty((n, n))
 

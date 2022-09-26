@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 
 #define TENSOR_IDX(i, j, k, n) \
     ((n) * (n) * (i) + (n) * (j) + (k))
@@ -38,7 +39,7 @@
 
 // Global flag
 // Set to true when operating in debug mode to enable verbose logging
-static bool debug = false;
+static bool debug = true;
 
 /**
  * @brief Solve Poissons equation for a given cube with Neumann boundary
@@ -53,6 +54,7 @@ static bool debug = false;
  */
 double *poisson_neumann(int n, double *source, int iterations, int threads, float delta)
 {
+    clock_t time_start;
     if (debug)
     {
         printf("Starting solver with:\n"
@@ -61,6 +63,7 @@ double *poisson_neumann(int n, double *source, int iterations, int threads, floa
                "threads = %i\n"
                "delta = %f\n",
                n, iterations, threads, delta);
+        time_start = clock();
     }
 
     // Allocate some buffers to calculate the solution in
@@ -75,7 +78,6 @@ double *poisson_neumann(int n, double *source, int iterations, int threads, floa
     }
 
     // TODO: solve Poisson's equation for the given
-    // memcpy(curr, source, n * n * n);
 
     double v = 0;
 
@@ -136,7 +138,9 @@ double *poisson_neumann(int n, double *source, int iterations, int threads, floa
 
     if (debug)
     {
-        printf("Finished solving.\n");
+        clock_t time_end = clock();
+        double time_exec = (double)(time_end - time_start) / CLOCKS_PER_SEC;
+        printf("Finished solving in %f.\n", time_exec);
     }
 
     return curr;
@@ -218,6 +222,7 @@ int main(int argc, char **argv)
     // Calculate the resulting field with Neumann conditions
     double *result = poisson_neumann(n, source, iterations, threads, delta);
 
+    printf("Result:\n");
     // Print out the middle slice of the cube for validation
     for (int x = 0; x < n; ++x)
     {
