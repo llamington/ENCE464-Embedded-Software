@@ -39,7 +39,7 @@
 
 // Global flag
 // Set to true when operating in debug mode to enable verbose logging
-static bool debug = true;
+static bool debug = false;
 
 /**
  * @brief Solve Poissons equation for a given cube with Neumann boundary
@@ -78,7 +78,7 @@ double *poisson_neumann(int n, double *source, int iterations, int threads, floa
     }
 
     // TODO: solve Poisson's equation for the given
-
+    double *temp;
     double v = 0;
 
     for (int iter = 0; iter < iterations; iter++)
@@ -127,7 +127,7 @@ double *poisson_neumann(int n, double *source, int iterations, int threads, floa
                 }
             }
         }
-        double *temp = curr;
+        temp = curr;
         curr = next;
         next = temp;
     }
