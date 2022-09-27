@@ -1,22 +1,13 @@
-// #include <stdbool.h>
-#include <stdlib.h>
+#include "poisson_solver.hpp"
 #include <iostream>
-#include <vector>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
-#include <pthread.h>
-#include <time.h>
-#include <thread>
-#include <array>
+#include <string>
+#include <vector>
 
 #define TENSOR_IDX(i, j, k, n) \
     ((n) * (n) * (i) + (n) * (j) + (k))
-
-typedef struct
-{
-    pthread_t thread_id;
-    int thread_num;
-} thread_info_t;
 
 /**
  * poisson.c
@@ -50,137 +41,13 @@ typedef struct
 // Global flag
 // Set to true when operating in debug mode to enable verbose logging
 static bool debug = false;
-static int threads = 1;
-static int n = 5;
-static float delta = 1;
-static int iterations = 10;
-double *curr;
-double *next;
-double *source;
 
-static void poisson_routine()
+int main(int argc, char *argv[])
 {
-    double *temp;
-    double v = 0;
-
-    for (int iter = 0; iter < iterations; iter++)
-    {
-        for (int i = 0; i < n; i++)
-        {
-            for (int j = 0; j < n; j++)
-            {
-                for (int k = 0; k < n; k++)
-                {
-                    v = 0;
-
-                    if (i == 0)
-                        v += 2 * curr[TENSOR_IDX(1, j, k, n)];
-                    else if (i == n - 1)
-                        v += 2 * curr[TENSOR_IDX(n - 2, j, k, n)];
-                    else
-                    {
-                        v += curr[TENSOR_IDX(i - 1, j, k, n)];
-                        v += curr[TENSOR_IDX(i + 1, j, k, n)];
-                    }
-
-                    if (j == 0)
-                        v += 2 * curr[TENSOR_IDX(i, 1, k, n)];
-                    else if (j == n - 1)
-                        v += 2 * curr[TENSOR_IDX(i, n - 2, k, n)];
-                    else
-                    {
-                        v += curr[TENSOR_IDX(i, j - 1, k, n)];
-                        v += curr[TENSOR_IDX(i, j + 1, k, n)];
-                    }
-
-                    if (k == 0)
-                        v += 2 * curr[TENSOR_IDX(i, j, 1, n)];
-                    else if (k == n - 1)
-                        v += 2 * curr[TENSOR_IDX(i, j, n - 2, n)];
-                    else
-                    {
-                        v += curr[TENSOR_IDX(i, j, k - 1, n)];
-                        v += curr[TENSOR_IDX(i, j, k + 1, n)];
-                    }
-
-                    v -= delta * delta * source[TENSOR_IDX(i, j, k, n)];
-                    v /= 6;
-                    next[TENSOR_IDX(i, j, k, n)] = v;
-                }
-            }
-        }
-        temp = curr;
-        curr = next;
-        next = temp;
-    }
-
-    pthread_exit(NULL);
-}
-
-/**
- * @brief Solve Poissons equation for a given cube with Neumann boundary
- * conditions on all sides.
- *
- * @param n             The edge length of the cube. n^3 number of elements.
- * @param source        Pointer to the source term cube, a.k.a. forcing function.
- * @param iterations    Number of iterations to perform.
- * @param threads       Number of threads to use for solving.
- * @param delta         Grid spacing.
- * @return double*      Solution to Poissons equation.  Caller must free.
- */
-static double *poisson_neumann(int n, double *source, int iterations, int threads, float delta)
-{
-    clock_t time_start;
-    if (debug)
-    {
-        printf("Starting solver with:\n"
-               "n = %i\n"
-               "iterations = %i\n"
-               "threads = %i\n"
-               "delta = %f\n",
-               n, iterations, threads, delta);
-        time_start = clock();
-    }
-
-    // Allocate some buffers to calculate the solution in
-    double *curr = (double *)calloc(n * n * n, sizeof(double));
-    double *next = (double *)calloc(n * n * n, sizeof(double));
-
-    // Ensure we haven't run out of memory
-    if (curr == NULL || next == NULL)
-    {
-        std::cerr << "Error: ran out of memory when trying to allocate " << n << " sized cube" << std::endl;
-        exit(EXIT_FAILURE);
-    }
-
-    // TODO: solve Poisson's equation for the given
-    thread_info_t thread_info[threads];
-    std::vector<std::thread> threads_vec;
-    threads_vec.reserve(threads);
-
-    for (int i = 0; i < threads; ++i)
-    {
-        threads_vec.push_back(std::thread(poisson_routine));
-    }
-    for (auto &thread : threads_vec)
-        thread.join();
-
-    // Free one of the buffers and return the correct answer in the other.
-    // The caller is now responsible for free'ing the returned pointer.
-    free(next);
-
-    if (debug)
-    {
-        clock_t time_end = clock();
-        double time_exec = (double)(time_end - time_start) / CLOCKS_PER_SEC;
-        printf("Finished solving in %f.\n", time_exec);
-    }
-
-    return curr;
-}
-
-int main(int argc, char **argv)
-{
+    int threads = 1;
+    int n = 5;
+    float delta = 1;
+    int iterations = 10;
 
     // parse the command line arguments
     for (int i = 1; i < argc; ++i)
@@ -238,17 +105,22 @@ int main(int argc, char **argv)
     }
 
     // Create a source term with a single point in the centre
-    source = (double *)calloc(n * n * n, sizeof(double));
-    if (source == NULL)
+    std::vector<double> source;
+    try
     {
-        fprintf(stderr, "Error: failed to allocated source term (n=%i)\n", n);
+        source.reserve(n * n * n);
+    }
+    catch (std::bad_alloc)
+    {
+        std::cerr << "Error: failed to allocated source term (n=" << n << ")" << std::endl;
         return EXIT_FAILURE;
     }
 
     source[(n * n * n) / 2] = 1;
 
+    PoissonSolver poisson_solver(n, source, iterations, threads, delta, debug);
     // Calculate the resulting field with Neumann conditions
-    double *result = poisson_neumann(n, source, iterations, threads, delta);
+    auto result = poisson_solver.solve();
 
     std::cout << "Result:" << std::endl;
     // Print out the middle slice of the cube for validation
@@ -258,11 +130,7 @@ int main(int argc, char **argv)
         {
             printf("%0.5f ", result[((n / 2) * n + y) * n + x]);
         }
-        printf("\n");
+        std::cout << std::endl;
     }
-
-    free(source);
-    free(result);
-
     return EXIT_SUCCESS;
 }

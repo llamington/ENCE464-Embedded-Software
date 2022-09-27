@@ -6,7 +6,7 @@ all: poisson
 CFLAGS = -g -Wall -pthread
 CC = g++
 
-poisson: poisson.cpp
+poisson: poisson.cpp poisson_solver.cpp
 	$(CC) -o $@ $^ $(CFLAGS)
 
 .PHONY: disassembly
