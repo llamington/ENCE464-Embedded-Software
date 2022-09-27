@@ -8,11 +8,11 @@ class PoissonSolver
 private:
     int n;
     const std::vector<double> &source;
-    std::vector<double> *curr;
-    std::vector<double> *next;
     int iterations;
     float delta;
     int threads;
+    std::vector<double> *curr;
+    std::vector<double> *next;
     bool debug = false;
 
     void poisson_thread(int thread_num);

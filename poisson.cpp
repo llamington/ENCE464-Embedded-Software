@@ -6,9 +6,6 @@
 #include <string>
 #include <vector>
 
-#define TENSOR_IDX(i, j, k, n) \
-    ((n) * (n) * (i) + (n) * (j) + (k))
-
 /**
  * poisson.c
  * Implementation of a Poisson solver with Neumann boundary conditions.
@@ -110,7 +107,7 @@ int main(int argc, char *argv[])
     {
         source.reserve(n * n * n);
     }
-    catch (std::bad_alloc)
+    catch (std::bad_alloc &)
     {
         std::cerr << "Error: failed to allocated source term (n=" << n << ")" << std::endl;
         return EXIT_FAILURE;
@@ -128,7 +125,7 @@ int main(int argc, char *argv[])
     {
         for (int y = 0; y < n; ++y)
         {
-            printf("%0.5f ", result[((n / 2) * n + y) * n + x]);
+            printf("%0.5f ", (*result)[((n / 2) * n + y) * n + x]);
         }
         std::cout << std::endl;
     }
