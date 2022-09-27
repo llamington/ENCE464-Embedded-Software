@@ -1,12 +1,22 @@
-#include <stdint.h>
-#include <stdbool.h>
+// #include <stdbool.h>
 #include <stdlib.h>
+#include <iostream>
+#include <vector>
 #include <stdio.h>
 #include <string.h>
+#include <pthread.h>
 #include <time.h>
+#include <thread>
+#include <array>
 
 #define TENSOR_IDX(i, j, k, n) \
     ((n) * (n) * (i) + (n) * (j) + (k))
+
+typedef struct
+{
+    pthread_t thread_id;
+    int thread_num;
+} thread_info_t;
 
 /**
  * poisson.c
@@ -40,44 +50,16 @@
 // Global flag
 // Set to true when operating in debug mode to enable verbose logging
 static bool debug = false;
+static int threads = 1;
+static int n = 5;
+static float delta = 1;
+static int iterations = 10;
+double *curr;
+double *next;
+double *source;
 
-/**
- * @brief Solve Poissons equation for a given cube with Neumann boundary
- * conditions on all sides.
- *
- * @param n             The edge length of the cube. n^3 number of elements.
- * @param source        Pointer to the source term cube, a.k.a. forcing function.
- * @param iterations    Number of iterations to perform.
- * @param threads       Number of threads to use for solving.
- * @param delta         Grid spacing.
- * @return double*      Solution to Poissons equation.  Caller must free.
- */
-double *poisson_neumann(int n, double *source, int iterations, int threads, float delta)
+static void poisson_routine()
 {
-    clock_t time_start;
-    if (debug)
-    {
-        printf("Starting solver with:\n"
-               "n = %i\n"
-               "iterations = %i\n"
-               "threads = %i\n"
-               "delta = %f\n",
-               n, iterations, threads, delta);
-        time_start = clock();
-    }
-
-    // Allocate some buffers to calculate the solution in
-    double *curr = (double *)calloc(n * n * n, sizeof(double));
-    double *next = (double *)calloc(n * n * n, sizeof(double));
-
-    // Ensure we haven't run out of memory
-    if (curr == NULL || next == NULL)
-    {
-        fprintf(stderr, "Error: ran out of memory when trying to allocate %i sized cube\n", n);
-        exit(EXIT_FAILURE);
-    }
-
-    // TODO: solve Poisson's equation for the given
     double *temp;
     double v = 0;
 
@@ -132,6 +114,57 @@ double *poisson_neumann(int n, double *source, int iterations, int threads, floa
         next = temp;
     }
 
+    pthread_exit(NULL);
+}
+
+/**
+ * @brief Solve Poissons equation for a given cube with Neumann boundary
+ * conditions on all sides.
+ *
+ * @param n             The edge length of the cube. n^3 number of elements.
+ * @param source        Pointer to the source term cube, a.k.a. forcing function.
+ * @param iterations    Number of iterations to perform.
+ * @param threads       Number of threads to use for solving.
+ * @param delta         Grid spacing.
+ * @return double*      Solution to Poissons equation.  Caller must free.
+ */
+static double *poisson_neumann(int n, double *source, int iterations, int threads, float delta)
+{
+    clock_t time_start;
+    if (debug)
+    {
+        printf("Starting solver with:\n"
+               "n = %i\n"
+               "iterations = %i\n"
+               "threads = %i\n"
+               "delta = %f\n",
+               n, iterations, threads, delta);
+        time_start = clock();
+    }
+
+    // Allocate some buffers to calculate the solution in
+    double *curr = (double *)calloc(n * n * n, sizeof(double));
+    double *next = (double *)calloc(n * n * n, sizeof(double));
+
+    // Ensure we haven't run out of memory
+    if (curr == NULL || next == NULL)
+    {
+        std::cerr << "Error: ran out of memory when trying to allocate " << n << " sized cube" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+
+    // TODO: solve Poisson's equation for the given
+    thread_info_t thread_info[threads];
+    std::vector<std::thread> threads_vec;
+    threads_vec.reserve(threads);
+
+    for (int i = 0; i < threads; ++i)
+    {
+        threads_vec.push_back(std::thread(poisson_routine));
+    }
+    for (auto &thread : threads_vec)
+        thread.join();
+
     // Free one of the buffers and return the correct answer in the other.
     // The caller is now responsible for free'ing the returned pointer.
     free(next);
@@ -148,18 +181,13 @@ double *poisson_neumann(int n, double *source, int iterations, int threads, floa
 
 int main(int argc, char **argv)
 {
-    // Default settings for solver
-    int iterations = 10;
-    int n = 5;
-    int threads = 1;
-    float delta = 1;
 
     // parse the command line arguments
     for (int i = 1; i < argc; ++i)
     {
         if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0)
         {
-            printf("Usage: poisson [-n size] [-i iterations] [-t threads] [--debug]\n");
+            std::cout << "Usage: poisson [-n size] [-i iterations] [-t threads] [--debug]" << std::endl;
             return EXIT_SUCCESS;
         }
 
@@ -167,7 +195,7 @@ int main(int argc, char **argv)
         {
             if (i == argc - 1)
             {
-                fprintf(stderr, "Error: expected size after -n!\n");
+                std::cerr << "Error: expected size after -n!" << std::endl;
                 return EXIT_FAILURE;
             }
 
@@ -178,7 +206,7 @@ int main(int argc, char **argv)
         {
             if (i == argc - 1)
             {
-                fprintf(stderr, "Error: expected iterations after -i!\n");
+                std::cerr << "Error: expected iterations after -i!" << std::endl;
                 return EXIT_FAILURE;
             }
 
@@ -189,7 +217,7 @@ int main(int argc, char **argv)
         {
             if (i == argc - 1)
             {
-                fprintf(stderr, "Error: expected threads after -t!\n");
+                std::cerr << "Error: expected threads after -t!" << std::endl;
                 return EXIT_FAILURE;
             }
 
@@ -205,12 +233,12 @@ int main(int argc, char **argv)
     // Ensure we have an odd sized cube
     if (n % 2 == 0)
     {
-        fprintf(stderr, "Error: n should be an odd number!\n");
+        std::cerr << "Error: n should be an odd number!" << std::endl;
         return EXIT_FAILURE;
     }
 
     // Create a source term with a single point in the centre
-    double *source = (double *)calloc(n * n * n, sizeof(double));
+    source = (double *)calloc(n * n * n, sizeof(double));
     if (source == NULL)
     {
         fprintf(stderr, "Error: failed to allocated source term (n=%i)\n", n);
@@ -222,7 +250,7 @@ int main(int argc, char **argv)
     // Calculate the resulting field with Neumann conditions
     double *result = poisson_neumann(n, source, iterations, threads, delta);
 
-    printf("Result:\n");
+    std::cout << "Result:" << std::endl;
     // Print out the middle slice of the cube for validation
     for (int x = 0; x < n; ++x)
     {

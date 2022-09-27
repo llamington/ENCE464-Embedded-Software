@@ -4,8 +4,10 @@ all: poisson
 # -Wall enables all warnings
 # -pthread configures threading
 CFLAGS = -g -Wall -pthread
+CC = g++
 
-poisson: poisson.c
+poisson: poisson.cpp
+	$(CC) -o $@ $^ $(CFLAGS)
 
 .PHONY: disassembly
 disassembly: poisson.s
