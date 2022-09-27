@@ -1,8 +1,7 @@
 #include "poisson_solver.hpp"
+#include "util.hpp"
+#include <iomanip>
 #include <iostream>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <string>
 #include <vector>
 
@@ -45,17 +44,19 @@ int main(int argc, char *argv[])
     int n = 5;
     float delta = 1;
     int iterations = 10;
+    std::string temp_arg;
 
     // parse the command line arguments
     for (int i = 1; i < argc; ++i)
     {
-        if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0)
+        temp_arg = std::string(argv[i]);
+        if (temp_arg == "-h" || temp_arg == "--help")
         {
             std::cout << "Usage: poisson [-n size] [-i iterations] [-t threads] [--debug]" << std::endl;
             return EXIT_SUCCESS;
         }
 
-        if (strcmp(argv[i], "-n") == 0)
+        if (temp_arg == "-n")
         {
             if (i == argc - 1)
             {
@@ -63,10 +64,10 @@ int main(int argc, char *argv[])
                 return EXIT_FAILURE;
             }
 
-            n = atoi(argv[++i]);
+            n = std::atoi(argv[++i]);
         }
 
-        if (strcmp(argv[i], "-i") == 0)
+        if (temp_arg == "-i")
         {
             if (i == argc - 1)
             {
@@ -74,10 +75,10 @@ int main(int argc, char *argv[])
                 return EXIT_FAILURE;
             }
 
-            iterations = atoi(argv[++i]);
+            iterations = std::atoi(argv[++i]);
         }
 
-        if (strcmp(argv[i], "-t") == 0)
+        if (temp_arg == "-t")
         {
             if (i == argc - 1)
             {
@@ -85,10 +86,10 @@ int main(int argc, char *argv[])
                 return EXIT_FAILURE;
             }
 
-            threads = atoi(argv[++i]);
+            threads = std::atoi(argv[++i]);
         }
 
-        if (strcmp(argv[i], "--debug") == 0)
+        if (temp_arg == "--debug")
         {
             debug = true;
         }
@@ -119,14 +120,15 @@ int main(int argc, char *argv[])
     // Calculate the resulting field with Neumann conditions
     auto result = poisson_solver.solve();
 
+    std::cout << std::fixed << std::setprecision(5);
     std::cout << "Result:" << std::endl;
+
     // Print out the middle slice of the cube for validation
     for (int x = 0; x < n; ++x)
     {
         for (int y = 0; y < n; ++y)
-        {
-            printf("%0.5f ", (*result)[((n / 2) * n + y) * n + x]);
-        }
+            std::cout << (*result)[TENSOR_IDX(n / 2, y, x, n)] << " ";
+
         std::cout << std::endl;
     }
     return EXIT_SUCCESS;
