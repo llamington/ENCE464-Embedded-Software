@@ -23,10 +23,13 @@ void PoissonSolver::poisson_thread(int thread_num)
 {
   std::vector<double> *temp;
   double v = 0;
+  int start_i = thread_num * block_size;
+  int end_i = (thread_num + 1) * block_size;
+  end_i = (end_i > n) ? n : end_i;
 
   for (int iter = 0; iter < iterations; iter++)
   {
-    for (int i = 0; i < n; i++)
+    for (int i = start_i; i < end_i; i++)
     {
       for (int j = 0; j < n; j++)
       {
@@ -106,5 +109,6 @@ std::vector<double> *PoissonSolver::solve(void)
   auto duration = std::chrono::duration_cast<std::chrono::microseconds>(time_stop - time_start);
   std::cout << "Duration: " << duration.count() << std::endl;
 
+  delete next;
   return curr;
 }

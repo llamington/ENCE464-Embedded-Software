@@ -14,6 +14,7 @@ private:
     std::vector<double> *curr;
     std::vector<double> *next;
     bool debug = false;
+    int block_size = (n + threads - 1) / threads;
 
     void poisson_thread(int thread_num);
 
