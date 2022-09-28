@@ -74,25 +74,26 @@ void PoissonSolver::poisson_thread(int thread_num)
         }
       }
     }
-    {
-      std::unique_lock<std::mutex> lock(curr_mut);
-      // Initialise barrier condition
-      bool original_curr_it = original_curr;
+    std::unique_lock<std::mutex> lock(curr_mut, std::defer_lock);
 
-      // Notify if barrier is met
-      if (++threads_waiting == threads)
-      {
-        threads_waiting = 0;
-        std::vector<double> *temp = curr;
-        curr = next;
-        next = temp;
-        original_curr = !original_curr;
-        barrier.notify_all();
-      }
-      else
-        barrier.wait(lock, [&original_curr_it, this]()
-                     { return original_curr_it != original_curr; });
+    // Initialise barrier condition
+    bool original_curr_it = original_curr;
+
+    lock.lock();
+    // Notify if barrier is met
+    if (++threads_waiting == threads)
+    {
+      threads_waiting = 0;
+      std::vector<double> *temp = curr;
+      curr = next;
+      next = temp;
+      original_curr = !original_curr;
+      barrier.notify_all();
     }
+    else
+      barrier.wait(lock, [&original_curr_it, this]()
+                   { return original_curr_it != original_curr; });
+    lock.unlock();
   }
 }
 
