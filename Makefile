@@ -3,7 +3,7 @@ all: poisson
 # -g outputs debugging information
 # -Wall enables all warnings
 # -pthread configures threading
-CFLAGS = -g -Wall -pthread
+CFLAGS = -g -Wall -pthread -O3
 CC = g++
 
 poisson: poisson.cpp poisson_solver.cpp
