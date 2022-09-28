@@ -1,8 +1,10 @@
 #include "poisson_solver.hpp"
 #include "util.hpp"
 #include <chrono>
+#include <condition_variable>
 #include <cstdlib>
 #include <iostream>
+#include <mutex>
 #include <thread>
 
 PoissonSolver::PoissonSolver(int n,
@@ -21,7 +23,7 @@ PoissonSolver::PoissonSolver(int n,
 
 void PoissonSolver::poisson_thread(int thread_num)
 {
-  std::vector<double> *temp;
+  std::unique_lock<std::mutex> lock(curr_mut);
   double v = 0;
   int start_i = thread_num * block_size;
   int end_i = (thread_num + 1) * block_size;
@@ -73,12 +75,23 @@ void PoissonSolver::poisson_thread(int thread_num)
         }
       }
     }
-    temp = curr;
-    curr = next;
-    next = temp;
-  }
+    // Initialise barrier condition
+    bool original_curr_it = original_curr;
 
-  pthread_exit(NULL);
+    // Notify if barrier is met
+    if (++threads_waiting == threads)
+    {
+      threads_waiting = 0;
+      std::vector<double> *temp = curr;
+      curr = next;
+      next = temp;
+      original_curr = !original_curr;
+      barrier.notify_all();
+    }
+    else
+      barrier.wait(lock, [&original_curr_it, this]()
+                   { return original_curr_it != original_curr; });
+  }
 }
 
 std::vector<double> *PoissonSolver::solve(void)
@@ -102,6 +115,9 @@ std::vector<double> *PoissonSolver::solve(void)
   {
     threads_vec.push_back(std::thread(&PoissonSolver::poisson_thread, this, i));
   }
+  // for (int i = 0; i < iterations; ++i)
+  // {
+  // }
   for (auto &thread : threads_vec)
     thread.join();
 
