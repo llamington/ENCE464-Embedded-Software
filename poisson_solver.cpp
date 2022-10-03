@@ -40,6 +40,8 @@ void PoissonSolver::poisson_thread(int thread_num)
 
   for (int iter = 0; iter < iterations; iter++)
   {
+    auto time_start = std::chrono::high_resolution_clock::now();
+
     for (int i = start_i; i < end_i; i++)
     {
       for (int j = 0; j < n; j++)
@@ -84,12 +86,18 @@ void PoissonSolver::poisson_thread(int thread_num)
         }
       }
     }
+
+    auto time_stop = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(time_stop - time_start);
+
     std::unique_lock<std::mutex> lock(curr_mut, std::defer_lock);
 
     // Initialise barrier condition
     bool original_curr_it = original_curr;
 
     lock.lock();
+    std::cout << "Thread " << thread_num << ": " << duration.count() << std::endl;
+
     // Notify if barrier is met
     if (++threads_waiting == threads)
     {

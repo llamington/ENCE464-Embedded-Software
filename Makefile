@@ -4,7 +4,7 @@ all: poisson
 # -Wall enables all warnings
 # -pthread configures threading
 CXX = g++
-CXXFLAGS = -g -Wall -pthread -std=c++11 -lstdc++
+CXXFLAGS = -g -Wall -pthread -std=c++11 -lstdc++ -O3
 
 poisson: poisson.cpp poisson_solver.cpp
 	$(CXX) -o $@ $^ $(CXXFLAGS)
