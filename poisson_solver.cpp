@@ -43,44 +43,330 @@ void PoissonSolver::poisson_thread(int thread_num)
   {
     auto time_start = std::chrono::high_resolution_clock::now();
 
-    for (int i = start_i; i < end_i; i++)
+    // Outer Faces
     {
-      for (int j = 0; j < n; j++)
+      for (int i = 1; i < n - 1; i++)
       {
-        for (int k = 0; k < n; k++)
+        for (int j = 1; j < n - 1; j++)
+        {
+          // Zeroth face
+          v = 0;
+          v += (*curr)[TENSOR_IDX(i - 1, j, 0, n)];
+          v += (*curr)[TENSOR_IDX(i + 1, j, 0, n)];
+          v += (*curr)[TENSOR_IDX(i, j - 1, 0, n)];
+          v += (*curr)[TENSOR_IDX(i, j + 1, 0, n)];
+          v += 2 * (*curr)[TENSOR_IDX(i, j, 1, n)];
+          v -= delta * delta * source[TENSOR_IDX(i, j, 0, n)];
+          v /= 6;
+          (*next)[TENSOR_IDX(i, j, 0, n)] = v;
+
+          // n-1th face
+          v = 0;
+          v += (*curr)[TENSOR_IDX(i - 1, j, n - 1, n)];
+          v += (*curr)[TENSOR_IDX(i + 1, j, n - 1, n)];
+          v += (*curr)[TENSOR_IDX(i, j - 1, n - 1, n)];
+          v += (*curr)[TENSOR_IDX(i, j + 1, n - 1, n)];
+          v += 2 * (*curr)[TENSOR_IDX(i, j, n - 2, n)];
+          v -= delta * delta * source[TENSOR_IDX(i, j, n - 1, n)];
+          v /= 6;
+          (*next)[TENSOR_IDX(i, j, n - 1, n)] = v;
+        }
+      }
+
+      for (int i = 1; i < n - 1; i++)
+      {
+        for (int k = 1; k < n - 1; k++)
+        {
+          // Zeroth face
+          v = 0;
+          v += (*curr)[TENSOR_IDX(i - 1, 0, k, n)];
+          v += (*curr)[TENSOR_IDX(i + 1, 0, k, n)];
+          v += 2 * (*curr)[TENSOR_IDX(i, 1, k, n)];
+          v += (*curr)[TENSOR_IDX(i, 0, k - 1, n)];
+          v += (*curr)[TENSOR_IDX(i, 0, k + 1, n)];
+          v -= delta * delta * source[TENSOR_IDX(i, 0, k, n)];
+          v /= 6;
+          (*next)[TENSOR_IDX(i, 0, k, n)] = v;
+
+          // n-1th face
+          v = 0;
+          v += (*curr)[TENSOR_IDX(i - 1, n - 1, k, n)];
+          v += (*curr)[TENSOR_IDX(i + 1, n - 1, k, n)];
+          v += 2 * (*curr)[TENSOR_IDX(i, n - 2, k, n)];
+          v += (*curr)[TENSOR_IDX(i, n - 1, k - 1, n)];
+          v += (*curr)[TENSOR_IDX(i, n - 1, k + 1, n)];
+          v -= delta * delta * source[TENSOR_IDX(i, n - 1, k, n)];
+          v /= 6;
+          (*next)[TENSOR_IDX(i, n - 1, k, n)] = v;
+        }
+      }
+
+      for (int k = 1; k < n - 1; k++)
+      {
+        for (int j = 1; j < n - 1; j++)
+        {
+          // Zeroth face
+          v = 0;
+          v += 2 * (*curr)[TENSOR_IDX(1, j, k, n)];
+          v += (*curr)[TENSOR_IDX(0, j - 1, k, n)];
+          v += (*curr)[TENSOR_IDX(0, j + 1, k, n)];
+          v += (*curr)[TENSOR_IDX(0, j, k - 1, n)];
+          v += (*curr)[TENSOR_IDX(0, j, k + 1, n)];
+          v -= delta * delta * source[TENSOR_IDX(0, j, k, n)];
+          v /= 6;
+          (*next)[TENSOR_IDX(0, j, k, n)] = v;
+
+          // n-1th face
+          v = 0;
+          v += 2 * (*curr)[TENSOR_IDX(n - 2, j, k, n)];
+          v += (*curr)[TENSOR_IDX(n - 1, j - 1, k, n)];
+          v += (*curr)[TENSOR_IDX(n - 1, j + 1, k, n)];
+          v += (*curr)[TENSOR_IDX(n - 1, j, k - 1, n)];
+          v += (*curr)[TENSOR_IDX(n - 1, j, k + 1, n)];
+          v -= delta * delta * source[TENSOR_IDX(n - 1, j, k, n)];
+          v /= 6;
+          (*next)[TENSOR_IDX(n - 1, j, k, n)] = v;
+        }
+      }
+    }
+
+    // Outer Edges
+    {
+      for (int i = 1; i < n - 1; i++)
+      {
+        // (0,0)
+        v = 0;
+        v += 2 * (*curr)[TENSOR_IDX(i, 1, 0, n)];
+        v += 2 * (*curr)[TENSOR_IDX(i, 0, 1, n)];
+        v += (*curr)[TENSOR_IDX(i - 1, 0, 0, n)];
+        v += (*curr)[TENSOR_IDX(i + 1, 0, 0, n)];
+        v -= delta * delta * source[TENSOR_IDX(i, 0, 0, n)];
+        v /= 6;
+        (*next)[TENSOR_IDX(i, 0, 0, n)] = v;
+
+        // (0, n-1)
+        v = 0;
+        v += 2 * (*curr)[TENSOR_IDX(i, 1, n - 1, n)];
+        v += 2 * (*curr)[TENSOR_IDX(i, 0, n - 2, n)];
+        v += (*curr)[TENSOR_IDX(i - 1, 0, n - 1, n)];
+        v += (*curr)[TENSOR_IDX(i + 1, 0, n - 1, n)];
+        v -= delta * delta * source[TENSOR_IDX(i, 0, n - 1, n)];
+        v /= 6;
+        (*next)[TENSOR_IDX(i, 0, n - 1, n)] = v;
+
+        // (n-1, 0)
+        v = 0;
+        v += 2 * (*curr)[TENSOR_IDX(i, n - 2, 0, n)];
+        v += 2 * (*curr)[TENSOR_IDX(i, n - 1, 1, n)];
+        v += (*curr)[TENSOR_IDX(i - 1, n - 1, 0, n)];
+        v += (*curr)[TENSOR_IDX(i + 1, n - 1, 0, n)];
+        v -= delta * delta * source[TENSOR_IDX(i, n - 1, 0, n)];
+        v /= 6;
+        (*next)[TENSOR_IDX(i, n - 1, 0, n)] = v;
+
+        // (n-1, n-1)
+        v = 0;
+        v += 2 * (*curr)[TENSOR_IDX(i, n - 2, n - 1, n)];
+        v += 2 * (*curr)[TENSOR_IDX(i, n - 1, n - 2, n)];
+        v += (*curr)[TENSOR_IDX(i - 1, n - 1, n - 1, n)];
+        v += (*curr)[TENSOR_IDX(i + 1, n - 1, n - 1, n)];
+        v -= delta * delta * source[TENSOR_IDX(i, n - 1, n - 1, n)];
+        v /= 6;
+        (*next)[TENSOR_IDX(i, n - 1, n - 1, n)] = v;
+      }
+
+      for (int j = 1; j < n - 1; j++)
+      {
+        // (0,0)
+        v = 0;
+        v += 2 * (*curr)[TENSOR_IDX(0, j, 1, n)];
+        v += 2 * (*curr)[TENSOR_IDX(1, j, 0, n)];
+        v += (*curr)[TENSOR_IDX(0, j - 1, 0, n)];
+        v += (*curr)[TENSOR_IDX(0, j + 1, 0, n)];
+        v -= delta * delta * source[TENSOR_IDX(0, j, 0, n)];
+        v /= 6;
+        (*next)[TENSOR_IDX(0, j, 0, n)] = v;
+
+        // (0, n-1)
+        v = 0;
+        v += 2 * (*curr)[TENSOR_IDX(1, j, n - 1, n)];
+        v += 2 * (*curr)[TENSOR_IDX(0, j, n - 2, n)];
+        v += (*curr)[TENSOR_IDX(0, j - 1, n - 1, n)];
+        v += (*curr)[TENSOR_IDX(0, j + 1, n - 1, n)];
+        v -= delta * delta * source[TENSOR_IDX(0, j, n - 1, n)];
+        v /= 6;
+        (*next)[TENSOR_IDX(0, j, n - 1, n)] = v;
+
+        // (n-1, 0)
+        v = 0;
+        v += 2 * (*curr)[TENSOR_IDX(n - 1, j, 1, n)];
+        v += 2 * (*curr)[TENSOR_IDX(n - 2, j, 0, n)];
+        v += (*curr)[TENSOR_IDX(n - 1, j - 1, 0, n)];
+        v += (*curr)[TENSOR_IDX(n - 1, j + 1, 0, n)];
+        v -= delta * delta * source[TENSOR_IDX(n - 1, j, 0, n)];
+        v /= 6;
+        (*next)[TENSOR_IDX(n - 1, j, 0, n)] = v;
+
+        // (n-1, n-1)
+        v = 0;
+        v += 2 * (*curr)[TENSOR_IDX(n - 1, j, n - 2, n)];
+        v += 2 * (*curr)[TENSOR_IDX(n - 2, j, n - 1, n)];
+        v += (*curr)[TENSOR_IDX(n - 1, j - 1, n - 1, n)];
+        v += (*curr)[TENSOR_IDX(n - 1, j + 1, n - 1, n)];
+        v -= delta * delta * source[TENSOR_IDX(n - 1, j, n - 1, n)];
+        v /= 6;
+        (*next)[TENSOR_IDX(n - 1, j, n - 1, n)] = v;
+      }
+
+      for (int k = 1; k < n - 1; k++)
+      {
+        // (0,0)
+        v = 0;
+        v += 2 * (*curr)[TENSOR_IDX(0, 1, k, n)];
+        v += 2 * (*curr)[TENSOR_IDX(1, 0, k, n)];
+        v += (*curr)[TENSOR_IDX(0, 0, k - 1, n)];
+        v += (*curr)[TENSOR_IDX(0, 0, k + 1, n)];
+        v -= delta * delta * source[TENSOR_IDX(0, 0, k, n)];
+        v /= 6;
+        (*next)[TENSOR_IDX(0, 0, k, n)] = v;
+
+        // (0, n-1)
+        v = 0;
+        v += 2 * (*curr)[TENSOR_IDX(1, n - 1, k, n)];
+        v += 2 * (*curr)[TENSOR_IDX(0, n - 2, k, n)];
+        v += (*curr)[TENSOR_IDX(0, n - 1, k - 1, n)];
+        v += (*curr)[TENSOR_IDX(0, n - 1, k + 1, n)];
+        v -= delta * delta * source[TENSOR_IDX(0, n - 1, k, n)];
+        v /= 6;
+        (*next)[TENSOR_IDX(0, n - 1, k, n)] = v;
+
+        // (n-1, 0)
+        v = 0;
+        v += 2 * (*curr)[TENSOR_IDX(n - 1, 1, k, n)];
+        v += 2 * (*curr)[TENSOR_IDX(n - 2, 0, k, n)];
+        v += (*curr)[TENSOR_IDX(n - 1, 0, k - 1, n)];
+        v += (*curr)[TENSOR_IDX(n - 1, 0, k + 1, n)];
+        v -= delta * delta * source[TENSOR_IDX(n - 1, 0, k, n)];
+        v /= 6;
+        (*next)[TENSOR_IDX(n - 1, 0, k, n)] = v;
+
+        // (n-1, n-1)
+        v = 0;
+        v += 2 * (*curr)[TENSOR_IDX(n - 1, n - 2, k, n)];
+        v += 2 * (*curr)[TENSOR_IDX(n - 2, n - 1, k, n)];
+        v += (*curr)[TENSOR_IDX(n - 1, n - 1, k - 1, n)];
+        v += (*curr)[TENSOR_IDX(n - 1, n + 1, k + 1, n)];
+        v -= delta * delta * source[TENSOR_IDX(n - 1, n - 1, k, n)];
+        v /= 6;
+        (*next)[TENSOR_IDX(n - 1, n - 1, k, n)] = v;
+      }
+    }
+
+    // Outer Vertices
+    {
+      // (0, 0, 0)
+      {
+        v = 0;
+        v += 2 * (*curr)[TENSOR_IDX(0, 0, 1, n)];
+        v += 2 * (*curr)[TENSOR_IDX(0, 1, 0, n)];
+        v += 2 * (*curr)[TENSOR_IDX(1, 0, 0, n)];
+        v -= delta * delta * source[TENSOR_IDX(0, 0, 0, n)];
+        v /= 6;
+        (*next)[TENSOR_IDX(0, 0, 0, n)] = v;
+      }
+
+      // (0, 0, n-1)
+      {
+        v = 0;
+        v += 2 * (*curr)[TENSOR_IDX(0, 0, n - 2, n)];
+        v += 2 * (*curr)[TENSOR_IDX(0, 1, n - 1, n)];
+        v += 2 * (*curr)[TENSOR_IDX(1, 0, n - 1, n)];
+        v -= delta * delta * source[TENSOR_IDX(0, 0, n - 1, n)];
+        v /= 6;
+        (*next)[TENSOR_IDX(0, 0, n - 1, n)] = v;
+      }
+
+      // (0, n-1, 0)
+      {
+        v = 0;
+        v += 2 * (*curr)[TENSOR_IDX(0, n - 1, 1, n)];
+        v += 2 * (*curr)[TENSOR_IDX(0, n - 2, 0, n)];
+        v += 2 * (*curr)[TENSOR_IDX(1, n - 1, 0, n)];
+        v -= delta * delta * source[TENSOR_IDX(0, n - 1, 0, n)];
+        v /= 6;
+        (*next)[TENSOR_IDX(0, n - 1, 0, n)] = v;
+      }
+
+      // (0, n-1, n-1)
+      {
+        v = 0;
+        v += 2 * (*curr)[TENSOR_IDX(0, n - 1, n - 2, n)];
+        v += 2 * (*curr)[TENSOR_IDX(0, n - 2, n - 1, n)];
+        v += 2 * (*curr)[TENSOR_IDX(1, n - 1, n - 1, n)];
+        v -= delta * delta * source[TENSOR_IDX(0, n - 1, n - 1, n)];
+        v /= 6;
+        (*next)[TENSOR_IDX(0, n - 1, n - 1, n)] = v;
+      }
+
+      // (n-1, 0, 0)
+      {
+        v = 0;
+        v += 2 * (*curr)[TENSOR_IDX(n - 1, 0, 1, n)];
+        v += 2 * (*curr)[TENSOR_IDX(n - 1, 1, 0, n)];
+        v += 2 * (*curr)[TENSOR_IDX(n - 2, 0, 0, n)];
+        v -= delta * delta * source[TENSOR_IDX(n - 1, 0, 0, n)];
+        v /= 6;
+        (*next)[TENSOR_IDX(n - 1, 0, 0, n)] = v;
+      }
+
+      // (n-1, 0, n-1)
+      {
+        v = 0;
+        v += 2 * (*curr)[TENSOR_IDX(n - 1, 0, n - 2, n)];
+        v += 2 * (*curr)[TENSOR_IDX(n - 1, 1, n - 1, n)];
+        v += 2 * (*curr)[TENSOR_IDX(n - 2, 0, n - 1, n)];
+        v -= delta * delta * source[TENSOR_IDX(n - 1, 0, n - 1, n)];
+        v /= 6;
+        (*next)[TENSOR_IDX(n - 1, 0, n - 1, n)] = v;
+      }
+
+      // (n-1, n-1, 0)
+      {
+        v = 0;
+        v += 2 * (*curr)[TENSOR_IDX(n - 1, n - 1, 1, n)];
+        v += 2 * (*curr)[TENSOR_IDX(n - 1, n - 2, 0, n)];
+        v += 2 * (*curr)[TENSOR_IDX(n - 2, n - 1, 0, n)];
+        v -= delta * delta * source[TENSOR_IDX(n - 1, n - 1, 0, n)];
+        v /= 6;
+        (*next)[TENSOR_IDX(n - 1, n - 1, 0, n)] = v;
+      }
+
+      // (n-1, n-1, n-1)
+      {
+        v = 0;
+        v += 2 * (*curr)[TENSOR_IDX(n - 1, n - 1, n - 2, n)];
+        v += 2 * (*curr)[TENSOR_IDX(n - 1, n - 2, n - 1, n)];
+        v += 2 * (*curr)[TENSOR_IDX(n - 2, n - 1, n - 1, n)];
+        v -= delta * delta * source[TENSOR_IDX(n - 1, n - 1, n - 1, n)];
+        v /= 6;
+        (*next)[TENSOR_IDX(n - 1, n - 1, n - 1, n)] = v;
+      }
+    }
+
+    // Inner Cube
+    for (int i = 1; i < n - 1; i++)
+    {
+      for (int j = 1; j < n - 1; j++)
+      {
+        for (int k = 1; k < n - 1; k++)
         {
           v = 0;
-
-          if (i == 0)
-            v += 2 * (*curr)[TENSOR_IDX(1, j, k, n)];
-          else if (i == n - 1)
-            v += 2 * (*curr)[TENSOR_IDX(n - 2, j, k, n)];
-          else
-          {
-            v += (*curr)[TENSOR_IDX(i - 1, j, k, n)];
-            v += (*curr)[TENSOR_IDX(i + 1, j, k, n)];
-          }
-
-          if (j == 0)
-            v += 2 * (*curr)[TENSOR_IDX(i, 1, k, n)];
-          else if (j == n - 1)
-            v += 2 * (*curr)[TENSOR_IDX(i, n - 2, k, n)];
-          else
-          {
-            v += (*curr)[TENSOR_IDX(i, j - 1, k, n)];
-            v += (*curr)[TENSOR_IDX(i, j + 1, k, n)];
-          }
-
-          if (k == 0)
-            v += 2 * (*curr)[TENSOR_IDX(i, j, 1, n)];
-          else if (k == n - 1)
-            v += 2 * (*curr)[TENSOR_IDX(i, j, n - 2, n)];
-          else
-          {
-            v += (*curr)[TENSOR_IDX(i, j, k - 1, n)];
-            v += (*curr)[TENSOR_IDX(i, j, k + 1, n)];
-          }
-
+          v += (*curr)[TENSOR_IDX(i - 1, j, k, n)];
+          v += (*curr)[TENSOR_IDX(i + 1, j, k, n)];
+          v += (*curr)[TENSOR_IDX(i, j - 1, k, n)];
+          v += (*curr)[TENSOR_IDX(i, j + 1, k, n)];
+          v += (*curr)[TENSOR_IDX(i, j, k - 1, n)];
+          v += (*curr)[TENSOR_IDX(i, j, k + 1, n)];
           v -= delta * delta * source[TENSOR_IDX(i, j, k, n)];
           v /= 6;
           (*next)[TENSOR_IDX(i, j, k, n)] = v;
@@ -95,7 +381,7 @@ void PoissonSolver::poisson_thread(int thread_num)
     bool original_curr_it = original_curr;
 
     lock.lock();
-    std::cout << "Thread " << thread_num << ": " << duration.count() << std::endl;
+    // std::cout << "Thread " << thread_num << ": " << duration.count() << std::endl;
 
     // Notify if barrier is met
     if (++threads_waiting == threads)
