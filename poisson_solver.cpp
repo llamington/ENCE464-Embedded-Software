@@ -101,9 +101,9 @@ void PoissonSolver::poisson_thread(int thread_num)
         }
       }
 
-      for (int k = 1; k < n - 1; k++)
+      for (int j = 1; j < n - 1; j++)
       {
-        for (int j = 1; j < n - 1; j++)
+        for (int k = 1; k < n - 1; k++)
         {
           // Zeroth face
           v = 0;
@@ -255,7 +255,7 @@ void PoissonSolver::poisson_thread(int thread_num)
         v += 2 * (*curr)[TENSOR_IDX(n - 1, n - 2, k, n)];
         v += 2 * (*curr)[TENSOR_IDX(n - 2, n - 1, k, n)];
         v += (*curr)[TENSOR_IDX(n - 1, n - 1, k - 1, n)];
-        v += (*curr)[TENSOR_IDX(n - 1, n + 1, k + 1, n)];
+        v += (*curr)[TENSOR_IDX(n - 1, n - 1, k + 1, n)];
         v -= delta * delta * source[TENSOR_IDX(n - 1, n - 1, k, n)];
         v /= 6;
         (*next)[TENSOR_IDX(n - 1, n - 1, k, n)] = v;
