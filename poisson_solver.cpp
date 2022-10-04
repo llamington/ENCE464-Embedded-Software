@@ -33,6 +33,7 @@ PoissonSolver::PoissonSolver(int n,
 
 void PoissonSolver::poisson_thread(int thread_num)
 {
+  std::unique_lock<std::mutex> lock(curr_mut, std::defer_lock);
   double v = 0;
   int start_i = thread_num * block_size;
   int end_i = (thread_num + 1) * block_size;
@@ -89,8 +90,6 @@ void PoissonSolver::poisson_thread(int thread_num)
 
     auto time_stop = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(time_stop - time_start);
-
-    std::unique_lock<std::mutex> lock(curr_mut, std::defer_lock);
 
     // Initialise barrier condition
     bool original_curr_it = original_curr;
