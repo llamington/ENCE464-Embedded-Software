@@ -40,6 +40,9 @@ void PoissonSolver::poisson_thread(int thread_num)
 
   std::size_t end_i = thread_num * block_size + 1;
   end_i = (end_i > n - 1) ? n - 1 : end_i;
+
+  // vector to hold result
+  std::vector<double> result((end_i - start_i) * n * n);
   std::size_t i, j, k;
 
   for (uint16_t iter = 0; iter < iterations; iter++)
@@ -376,8 +379,20 @@ void PoissonSolver::poisson_thread(int thread_num)
             v += (*curr)[TENSOR_IDX(i + 1, j, k, n)];
             v -= delta * delta * source[TENSOR_IDX(i, j, k, n)];
             v /= 6;
-            (*next)[TENSOR_IDX(i, j, k, n)] = v;
+            result[TENSOR_IDX(i - start_i, j, k, n)] = v;
+            // (*next)[TENSOR_IDX(i, j, k, n)] = v;
           }
+        }
+      }
+    }
+
+    for (i = start_i; i < end_i; i++)
+    {
+      for (j = 1; j < n - 1; j++)
+      {
+        for (k = 1; k < n - 1; k++)
+        {
+          (*next)[TENSOR_IDX(i, j, k, n)] = result[TENSOR_IDX(i - start_i, j, k, n)];
         }
       }
     }
