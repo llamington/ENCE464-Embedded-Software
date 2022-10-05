@@ -9,7 +9,7 @@
 class PoissonSolver
 {
 private:
-    const int n;
+    const std::size_t n;
     const std::vector<double> &source;
     const int iterations;
     const float delta;
@@ -31,7 +31,7 @@ private:
     void poisson_thread(int thread_num);
 
 public:
-    PoissonSolver(int n,
+    PoissonSolver(std::size_t n,
                   const std::vector<double> &source,
                   int iterations,
                   int threads,

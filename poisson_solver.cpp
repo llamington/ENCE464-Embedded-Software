@@ -7,7 +7,7 @@
 #include <mutex>
 #include <thread>
 
-PoissonSolver::PoissonSolver(int n,
+PoissonSolver::PoissonSolver(std::size_t n,
                              const std::vector<double> &source,
                              int iterations,
                              int threads,
@@ -35,23 +35,24 @@ void PoissonSolver::poisson_thread(int thread_num)
 {
   std::unique_lock<std::mutex> lock(curr_mut, std::defer_lock);
   double v = 0;
-  int start_i = (thread_num - 1) * block_size;
+  std::size_t start_i = (thread_num - 1) * block_size;
   start_i = (start_i < 1) ? 1 : start_i;
 
-  int end_i = thread_num * block_size;
+  std::size_t end_i = thread_num * block_size;
   end_i = (end_i > n - 1) ? n - 1 : end_i;
+  std::size_t i, j, k;
 
-  for (int iter = 0; iter < iterations; iter++)
+  for (uint16_t iter = 0; iter < iterations; iter++)
   {
-    auto time_start = std::chrono::high_resolution_clock::now();
+    // auto time_start = std::chrono::high_resolution_clock::now();
 
     if (thread_num == 0)
     {
       // Outer Faces
       {
-        for (int i = 1; i < n - 1; i++)
+        for (i = 1; i < n - 1; i++)
         {
-          for (int j = 1; j < n - 1; j++)
+          for (j = 1; j < n - 1; j++)
           {
             // Zeroth face
             v = 0;
@@ -77,9 +78,9 @@ void PoissonSolver::poisson_thread(int thread_num)
           }
         }
 
-        for (int i = 1; i < n - 1; i++)
+        for (i = 1; i < n - 1; i++)
         {
-          for (int k = 1; k < n - 1; k++)
+          for (k = 1; k < n - 1; k++)
           {
             // Zeroth face
             v = 0;
@@ -105,9 +106,9 @@ void PoissonSolver::poisson_thread(int thread_num)
           }
         }
 
-        for (int j = 1; j < n - 1; j++)
+        for (j = 1; j < n - 1; j++)
         {
-          for (int k = 1; k < n - 1; k++)
+          for (k = 1; k < n - 1; k++)
           {
             // Zeroth face
             v = 0;
@@ -136,7 +137,7 @@ void PoissonSolver::poisson_thread(int thread_num)
 
       // Outer Edges
       {
-        for (int i = 1; i < n - 1; i++)
+        for (i = 1; i < n - 1; i++)
         {
           // (0,0)
           v = 0;
@@ -179,7 +180,7 @@ void PoissonSolver::poisson_thread(int thread_num)
           (*next)[TENSOR_IDX(i, n - 1, n - 1, n)] = v;
         }
 
-        for (int j = 1; j < n - 1; j++)
+        for (j = 1; j < n - 1; j++)
         {
           // (0,0)
           v = 0;
@@ -222,7 +223,7 @@ void PoissonSolver::poisson_thread(int thread_num)
           (*next)[TENSOR_IDX(n - 1, j, n - 1, n)] = v;
         }
 
-        for (int k = 1; k < n - 1; k++)
+        for (k = 1; k < n - 1; k++)
         {
           // (0,0)
           v = 0;
@@ -359,11 +360,11 @@ void PoissonSolver::poisson_thread(int thread_num)
     }
 
     // Inner Cube
-    for (int i = start_i; i < end_i; i++)
+    for (i = start_i; i < end_i; i++)
     {
-      for (int j = 1; j < n - 1; j++)
+      for (j = 1; j < n - 1; j++)
       {
-        for (int k = 1; k < n - 1; k++)
+        for (k = 1; k < n - 1; k++)
         {
           v = 0;
           v += (*curr)[TENSOR_IDX(i - 1, j, k, n)];
@@ -379,8 +380,8 @@ void PoissonSolver::poisson_thread(int thread_num)
       }
     }
 
-    auto time_stop = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(time_stop - time_start);
+    // auto time_stop = std::chrono::high_resolution_clock::now();
+    // auto duration = std::chrono::duration_cast<std::chrono::microseconds>(time_stop - time_start);
 
     // Initialise barrier condition
     bool original_curr_it = original_curr;
