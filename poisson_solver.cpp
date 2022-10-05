@@ -38,7 +38,7 @@ void PoissonSolver::poisson_thread(int thread_num)
   std::size_t start_i = (thread_num - 1) * block_size;
   start_i = (start_i < 1) ? 1 : start_i;
 
-  std::size_t end_i = thread_num * block_size;
+  std::size_t end_i = thread_num * block_size + 1;
   end_i = (end_i > n - 1) ? n - 1 : end_i;
   std::size_t i, j, k;
 
@@ -358,24 +358,26 @@ void PoissonSolver::poisson_thread(int thread_num)
         }
       }
     }
-
-    // Inner Cube
-    for (i = start_i; i < end_i; i++)
+    else
     {
-      for (j = 1; j < n - 1; j++)
+      // Inner Cube
+      for (i = start_i; i < end_i; i++)
       {
-        for (k = 1; k < n - 1; k++)
+        for (j = 1; j < n - 1; j++)
         {
-          v = 0;
-          v += (*curr)[TENSOR_IDX(i - 1, j, k, n)];
-          v += (*curr)[TENSOR_IDX(i, j - 1, k, n)];
-          v += (*curr)[TENSOR_IDX(i, j, k - 1, n)];
-          v += (*curr)[TENSOR_IDX(i, j, k + 1, n)];
-          v += (*curr)[TENSOR_IDX(i, j + 1, k, n)];
-          v += (*curr)[TENSOR_IDX(i + 1, j, k, n)];
-          v -= delta * delta * source[TENSOR_IDX(i, j, k, n)];
-          v /= 6;
-          (*next)[TENSOR_IDX(i, j, k, n)] = v;
+          for (k = 1; k < n - 1; k++)
+          {
+            v = 0;
+            v += (*curr)[TENSOR_IDX(i - 1, j, k, n)];
+            v += (*curr)[TENSOR_IDX(i, j - 1, k, n)];
+            v += (*curr)[TENSOR_IDX(i, j, k - 1, n)];
+            v += (*curr)[TENSOR_IDX(i, j, k + 1, n)];
+            v += (*curr)[TENSOR_IDX(i, j + 1, k, n)];
+            v += (*curr)[TENSOR_IDX(i + 1, j, k, n)];
+            v -= delta * delta * source[TENSOR_IDX(i, j, k, n)];
+            v /= 6;
+            (*next)[TENSOR_IDX(i, j, k, n)] = v;
+          }
         }
       }
     }
