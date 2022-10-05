@@ -106,7 +106,7 @@ int main(int argc, char *argv[])
     std::vector<double> source;
     try
     {
-        source.reserve(n * n * n);
+        source = std::vector<double>(n * n * n, 0);
     }
     catch (std::bad_alloc &)
     {
