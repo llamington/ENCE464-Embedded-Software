@@ -9,15 +9,15 @@
 class PoissonSolver
 {
 private:
-    int n;
+    const int n;
     const std::vector<double> &source;
-    int iterations;
-    float delta;
-    int threads;
+    const int iterations;
+    const float delta;
+    const int threads;
     std::vector<double> *curr;
     std::vector<double> *next;
     bool debug = false;
-    int block_size = (n + threads - 1) / threads;
+    const int block_size = (n + threads - 4) / (threads - 1);
 
     // Mutex to coordinate read/writes to current
     std::mutex curr_mut;
@@ -37,6 +37,7 @@ public:
                   int threads,
                   float delta,
                   bool debug);
+
     std::vector<double> *solve(void);
 };
 
