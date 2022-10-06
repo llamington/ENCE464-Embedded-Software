@@ -17,23 +17,12 @@ PoissonSolver::PoissonSolver(int n,
       iterations(iterations),
       delta(delta),
       threads(threads),
-      curr(new std::vector<double>),
-      next(new std::vector<double>) {}
-
+      curr(new std::vector<double>(n * n * n, 0)),
+      next(new std::vector<double>(n * n * n)) {}
 
 std::vector<double> *PoissonSolver::solve(void)
 {
   auto time_start = std::chrono::high_resolution_clock::now();
-  try
-  {
-    curr->reserve(n * n * n);
-    next->reserve(n * n * n);
-  }
-  catch (std::bad_alloc &)
-  {
-    std::cerr << "Error: ran out of memory when trying to allocate " << n << " sized cube" << std::endl;
-    std::exit(EXIT_FAILURE);
-  }
 
 #pragma omp parallel shared(curr, next, source, delta, n, iterations)
   for (int iter = 0; iter < iterations; iter++)
