@@ -3,6 +3,7 @@
 #include <chrono>
 #include <cstdlib>
 #include <iostream>
+#include <omp.h>
 #include <thread>
 
 PoissonSolver::PoissonSolver(int n,
@@ -19,20 +20,32 @@ PoissonSolver::PoissonSolver(int n,
       curr(new std::vector<double>),
       next(new std::vector<double>) {}
 
-void PoissonSolver::poisson_thread(int thread_num)
-{
-  std::vector<double> *temp;
-  double v = 0;
 
+std::vector<double> *PoissonSolver::solve(void)
+{
+  auto time_start = std::chrono::high_resolution_clock::now();
+  try
+  {
+    curr->reserve(n * n * n);
+    next->reserve(n * n * n);
+  }
+  catch (std::bad_alloc &)
+  {
+    std::cerr << "Error: ran out of memory when trying to allocate " << n << " sized cube" << std::endl;
+    std::exit(EXIT_FAILURE);
+  }
+
+#pragma omp parallel shared(curr, next, source, delta, n, iterations)
   for (int iter = 0; iter < iterations; iter++)
   {
+#pragma omp for schedule(static)
     for (int i = 0; i < n; i++)
     {
       for (int j = 0; j < n; j++)
       {
         for (int k = 0; k < n; k++)
         {
-          v = 0;
+          double v = 0;
 
           if (i == 0)
             v += 2 * (*curr)[TENSOR_IDX(1, j, k, n)];
@@ -70,37 +83,14 @@ void PoissonSolver::poisson_thread(int thread_num)
         }
       }
     }
-    temp = curr;
-    curr = next;
-    next = temp;
-  }
 
-  pthread_exit(NULL);
-}
-
-std::vector<double> *PoissonSolver::solve(void)
-{
-  auto time_start = std::chrono::high_resolution_clock::now();
-  try
-  {
-    curr->reserve(n * n * n);
-    next->reserve(n * n * n);
+#pragma omp single
+    {
+      std::vector<double> *temp = curr;
+      curr = next;
+      next = temp;
+    }
   }
-  catch (std::bad_alloc &)
-  {
-    std::cerr << "Error: ran out of memory when trying to allocate " << n << " sized cube" << std::endl;
-    std::exit(EXIT_FAILURE);
-  }
-
-  std::vector<std::thread> threads_vec;
-  threads_vec.reserve(threads);
-
-  for (int i = 0; i < threads; ++i)
-  {
-    threads_vec.push_back(std::thread(&PoissonSolver::poisson_thread, this, i));
-  }
-  for (auto &thread : threads_vec)
-    thread.join();
 
   auto time_stop = std::chrono::high_resolution_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::microseconds>(time_stop - time_start);
