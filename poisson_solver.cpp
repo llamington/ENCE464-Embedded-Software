@@ -4,7 +4,6 @@
 #include <cstdlib>
 #include <iostream>
 #include <omp.h>
-#include <thread>
 
 PoissonSolver::PoissonSolver(int n,
                              const std::vector<double> &source,
