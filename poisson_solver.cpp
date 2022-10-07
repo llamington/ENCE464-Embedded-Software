@@ -4,8 +4,7 @@
 #include <condition_variable>
 #include <cstdlib>
 #include <iostream>
-#include <mutex>
-#include <thread>
+#include <omp.h>
 
 PoissonSolver::PoissonSolver(int n,
                              const std::vector<double> &source,
@@ -17,19 +16,8 @@ PoissonSolver::PoissonSolver(int n,
       source(source),
       iterations(iterations),
       threads(threads),
-      delta(delta)
-{
-  try
-  {
-    curr = new std::vector<double>(n * n * n);
-    next = new std::vector<double>(n * n * n);
-  }
-  catch (std::bad_alloc &)
-  {
-    std::cerr << "Error: ran out of memory when trying to allocate " << n << " sized cube" << std::endl;
-    std::exit(EXIT_FAILURE);
-  }
-}
+      curr(new std::vector<double>(n * n * n, 0)),
+      next(new std::vector<double>(n * n * n)) {}
 
 std::vector<double> *PoissonSolver::solve(void)
 {
@@ -43,6 +31,7 @@ std::vector<double> *PoissonSolver::solve(void)
 
 // auto time_start = std::chrono::high_resolution_clock::now();
 #pragma omp sections nowait
+
     {
       // Outer Faces
 #pragma omp section
