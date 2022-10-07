@@ -16,6 +16,7 @@ PoissonSolver::PoissonSolver(int n,
       source(source),
       iterations(iterations),
       threads(threads),
+      delta(delta),
       curr(new std::vector<double>(n * n * n, 0)),
       next(new std::vector<double>(n * n * n)) {}
 
@@ -28,10 +29,7 @@ std::vector<double> *PoissonSolver::solve(void)
   {
     double v = 0;
     int i, j, k;
-
-// auto time_start = std::chrono::high_resolution_clock::now();
 #pragma omp sections nowait
-
     {
       // Outer Faces
 #pragma omp section
@@ -378,9 +376,12 @@ std::vector<double> *PoissonSolver::solve(void)
       next = temp;
     }
   }
-  auto time_stop = std::chrono::high_resolution_clock::now();
-  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(time_stop - time_start);
-  std::cout << "Duration: " << duration.count() << std::endl;
+  if (debug)
+  {
+    auto time_stop = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(time_stop - time_start);
+    std::cout << "Duration: " << duration.count() << std::endl;
+  }
 
   delete next;
   return curr;
