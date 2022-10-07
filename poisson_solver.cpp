@@ -7,7 +7,7 @@
 #include <mutex>
 #include <thread>
 
-PoissonSolver::PoissonSolver(std::size_t n,
+PoissonSolver::PoissonSolver(int n,
                              const std::vector<double> &source,
                              int iterations,
                              int threads,
@@ -16,8 +16,8 @@ PoissonSolver::PoissonSolver(std::size_t n,
     : n(n),
       source(source),
       iterations(iterations),
-      delta(delta),
-      threads(threads)
+      threads(threads),
+      delta(delta)
 {
   try
   {
@@ -31,24 +31,21 @@ PoissonSolver::PoissonSolver(std::size_t n,
   }
 }
 
-void PoissonSolver::poisson_thread(int thread_num)
+std::vector<double> *PoissonSolver::solve(void)
 {
-  std::unique_lock<std::mutex> lock(curr_mut, std::defer_lock);
-  double v = 0;
-  std::size_t start_i = (thread_num - 1) * block_size;
-  start_i = (start_i < 1) ? 1 : start_i;
+  auto time_start = std::chrono::high_resolution_clock::now();
 
-  std::size_t end_i = thread_num * block_size + 1;
-  end_i = (end_i > n - 1) ? n - 1 : end_i;
-  std::size_t i, j, k;
-
+#pragma omp parallel shared(curr, next, source, delta, n, iterations)
   for (uint16_t iter = 0; iter < iterations; iter++)
   {
-    // auto time_start = std::chrono::high_resolution_clock::now();
+    double v = 0;
+    int i, j, k;
 
-    if (thread_num == 0)
+// auto time_start = std::chrono::high_resolution_clock::now();
+#pragma omp sections nowait
     {
       // Outer Faces
+#pragma omp section
       {
         for (i = 1; i < n - 1; i++)
         {
@@ -77,7 +74,9 @@ void PoissonSolver::poisson_thread(int thread_num)
             (*next)[TENSOR_IDX(i, j, n - 1, n)] = v;
           }
         }
-
+      }
+#pragma omp section
+      {
         for (i = 1; i < n - 1; i++)
         {
           for (k = 1; k < n - 1; k++)
@@ -105,7 +104,9 @@ void PoissonSolver::poisson_thread(int thread_num)
             (*next)[TENSOR_IDX(i, n - 1, k, n)] = v;
           }
         }
-
+      }
+#pragma omp section
+      {
         for (j = 1; j < n - 1; j++)
         {
           for (k = 1; k < n - 1; k++)
@@ -134,8 +135,8 @@ void PoissonSolver::poisson_thread(int thread_num)
           }
         }
       }
-
-      // Outer Edges
+// Outer Edges
+#pragma omp section
       {
         for (i = 1; i < n - 1; i++)
         {
@@ -179,7 +180,9 @@ void PoissonSolver::poisson_thread(int thread_num)
           v /= 6;
           (*next)[TENSOR_IDX(i, n - 1, n - 1, n)] = v;
         }
-
+      }
+#pragma omp section
+      {
         for (j = 1; j < n - 1; j++)
         {
           // (0,0)
@@ -222,7 +225,9 @@ void PoissonSolver::poisson_thread(int thread_num)
           v /= 6;
           (*next)[TENSOR_IDX(n - 1, j, n - 1, n)] = v;
         }
-
+      }
+#pragma omp section
+      {
         for (k = 1; k < n - 1; k++)
         {
           // (0,0)
@@ -266,162 +271,124 @@ void PoissonSolver::poisson_thread(int thread_num)
           (*next)[TENSOR_IDX(n - 1, n - 1, k, n)] = v;
         }
       }
-
-      // Outer Vertices
+// Outer Vertices
+#pragma omp section
       {
         // (0, 0, 0)
-        {
-          v = 0;
-          v += 2 * (*curr)[TENSOR_IDX(0, 0, 1, n)];
-          v += 2 * (*curr)[TENSOR_IDX(0, 1, 0, n)];
-          v += 2 * (*curr)[TENSOR_IDX(1, 0, 0, n)];
-          v -= delta * delta * source[TENSOR_IDX(0, 0, 0, n)];
-          v /= 6;
-          (*next)[TENSOR_IDX(0, 0, 0, n)] = v;
-        }
-
-        // (0, 0, n-1)
-        {
-          v = 0;
-          v += 2 * (*curr)[TENSOR_IDX(0, 0, n - 2, n)];
-          v += 2 * (*curr)[TENSOR_IDX(0, 1, n - 1, n)];
-          v += 2 * (*curr)[TENSOR_IDX(1, 0, n - 1, n)];
-          v -= delta * delta * source[TENSOR_IDX(0, 0, n - 1, n)];
-          v /= 6;
-          (*next)[TENSOR_IDX(0, 0, n - 1, n)] = v;
-        }
-
-        // (0, n-1, 0)
-        {
-          v = 0;
-          v += 2 * (*curr)[TENSOR_IDX(0, n - 2, 0, n)];
-          v += 2 * (*curr)[TENSOR_IDX(0, n - 1, 1, n)];
-          v += 2 * (*curr)[TENSOR_IDX(1, n - 1, 0, n)];
-          v -= delta * delta * source[TENSOR_IDX(0, n - 1, 0, n)];
-          v /= 6;
-          (*next)[TENSOR_IDX(0, n - 1, 0, n)] = v;
-        }
-
-        // (0, n-1, n-1)
-        {
-          v = 0;
-          v += 2 * (*curr)[TENSOR_IDX(0, n - 2, n - 1, n)];
-          v += 2 * (*curr)[TENSOR_IDX(0, n - 1, n - 2, n)];
-          v += 2 * (*curr)[TENSOR_IDX(1, n - 1, n - 1, n)];
-          v -= delta * delta * source[TENSOR_IDX(0, n - 1, n - 1, n)];
-          v /= 6;
-          (*next)[TENSOR_IDX(0, n - 1, n - 1, n)] = v;
-        }
-
-        // (n-1, 0, 0)
-        {
-          v = 0;
-          v += 2 * (*curr)[TENSOR_IDX(n - 2, 0, 0, n)];
-          v += 2 * (*curr)[TENSOR_IDX(n - 1, 0, 1, n)];
-          v += 2 * (*curr)[TENSOR_IDX(n - 1, 1, 0, n)];
-          v -= delta * delta * source[TENSOR_IDX(n - 1, 0, 0, n)];
-          v /= 6;
-          (*next)[TENSOR_IDX(n - 1, 0, 0, n)] = v;
-        }
-
-        // (n-1, 0, n-1)
-        {
-          v = 0;
-          v += 2 * (*curr)[TENSOR_IDX(n - 2, 0, n - 1, n)];
-          v += 2 * (*curr)[TENSOR_IDX(n - 1, 0, n - 2, n)];
-          v += 2 * (*curr)[TENSOR_IDX(n - 1, 1, n - 1, n)];
-          v -= delta * delta * source[TENSOR_IDX(n - 1, 0, n - 1, n)];
-          v /= 6;
-          (*next)[TENSOR_IDX(n - 1, 0, n - 1, n)] = v;
-        }
-
-        // (n-1, n-1, 0)
-        {
-          v = 0;
-          v += 2 * (*curr)[TENSOR_IDX(n - 2, n - 1, 0, n)];
-          v += 2 * (*curr)[TENSOR_IDX(n - 1, n - 2, 0, n)];
-          v += 2 * (*curr)[TENSOR_IDX(n - 1, n - 1, 1, n)];
-          v -= delta * delta * source[TENSOR_IDX(n - 1, n - 1, 0, n)];
-          v /= 6;
-          (*next)[TENSOR_IDX(n - 1, n - 1, 0, n)] = v;
-        }
-
-        // (n-1, n-1, n-1)
-        {
-          v = 0;
-          v += 2 * (*curr)[TENSOR_IDX(n - 2, n - 1, n - 1, n)];
-          v += 2 * (*curr)[TENSOR_IDX(n - 1, n - 2, n - 1, n)];
-          v += 2 * (*curr)[TENSOR_IDX(n - 1, n - 1, n - 2, n)];
-          v -= delta * delta * source[TENSOR_IDX(n - 1, n - 1, n - 1, n)];
-          v /= 6;
-          (*next)[TENSOR_IDX(n - 1, n - 1, n - 1, n)] = v;
-        }
+        v = 0;
+        v += 2 * (*curr)[TENSOR_IDX(0, 0, 1, n)];
+        v += 2 * (*curr)[TENSOR_IDX(0, 1, 0, n)];
+        v += 2 * (*curr)[TENSOR_IDX(1, 0, 0, n)];
+        v -= delta * delta * source[TENSOR_IDX(0, 0, 0, n)];
+        v /= 6;
+        (*next)[TENSOR_IDX(0, 0, 0, n)] = v;
       }
-    }
-    else
-    {
-      // Inner Cube
-      for (i = start_i; i < end_i; i++)
+#pragma omp section
       {
-        for (j = 1; j < n - 1; j++)
+        // (0, 0, n-1)
+        v = 0;
+        v += 2 * (*curr)[TENSOR_IDX(0, 0, n - 2, n)];
+        v += 2 * (*curr)[TENSOR_IDX(0, 1, n - 1, n)];
+        v += 2 * (*curr)[TENSOR_IDX(1, 0, n - 1, n)];
+        v -= delta * delta * source[TENSOR_IDX(0, 0, n - 1, n)];
+        v /= 6;
+        (*next)[TENSOR_IDX(0, 0, n - 1, n)] = v;
+      }
+#pragma omp section
+      {
+        // (0, n-1, 0)
+        v = 0;
+        v += 2 * (*curr)[TENSOR_IDX(0, n - 2, 0, n)];
+        v += 2 * (*curr)[TENSOR_IDX(0, n - 1, 1, n)];
+        v += 2 * (*curr)[TENSOR_IDX(1, n - 1, 0, n)];
+        v -= delta * delta * source[TENSOR_IDX(0, n - 1, 0, n)];
+        v /= 6;
+        (*next)[TENSOR_IDX(0, n - 1, 0, n)] = v;
+      }
+#pragma omp section
+      {
+        // (0, n-1, n-1)
+        v = 0;
+        v += 2 * (*curr)[TENSOR_IDX(0, n - 2, n - 1, n)];
+        v += 2 * (*curr)[TENSOR_IDX(0, n - 1, n - 2, n)];
+        v += 2 * (*curr)[TENSOR_IDX(1, n - 1, n - 1, n)];
+        v -= delta * delta * source[TENSOR_IDX(0, n - 1, n - 1, n)];
+        v /= 6;
+        (*next)[TENSOR_IDX(0, n - 1, n - 1, n)] = v;
+      }
+#pragma omp section
+      {
+        // (n-1, 0, 0)
+        v = 0;
+        v += 2 * (*curr)[TENSOR_IDX(n - 2, 0, 0, n)];
+        v += 2 * (*curr)[TENSOR_IDX(n - 1, 0, 1, n)];
+        v += 2 * (*curr)[TENSOR_IDX(n - 1, 1, 0, n)];
+        v -= delta * delta * source[TENSOR_IDX(n - 1, 0, 0, n)];
+        v /= 6;
+        (*next)[TENSOR_IDX(n - 1, 0, 0, n)] = v;
+      }
+#pragma omp section
+      {
+        // (n-1, 0, n-1)
+        v = 0;
+        v += 2 * (*curr)[TENSOR_IDX(n - 2, 0, n - 1, n)];
+        v += 2 * (*curr)[TENSOR_IDX(n - 1, 0, n - 2, n)];
+        v += 2 * (*curr)[TENSOR_IDX(n - 1, 1, n - 1, n)];
+        v -= delta * delta * source[TENSOR_IDX(n - 1, 0, n - 1, n)];
+        v /= 6;
+        (*next)[TENSOR_IDX(n - 1, 0, n - 1, n)] = v;
+      }
+#pragma omp section
+      {
+        // (n-1, n-1, 0)
+        v = 0;
+        v += 2 * (*curr)[TENSOR_IDX(n - 2, n - 1, 0, n)];
+        v += 2 * (*curr)[TENSOR_IDX(n - 1, n - 2, 0, n)];
+        v += 2 * (*curr)[TENSOR_IDX(n - 1, n - 1, 1, n)];
+        v -= delta * delta * source[TENSOR_IDX(n - 1, n - 1, 0, n)];
+        v /= 6;
+        (*next)[TENSOR_IDX(n - 1, n - 1, 0, n)] = v;
+      }
+#pragma omp section
+      {
+        // (n-1, n-1, n-1)
+        v = 0;
+        v += 2 * (*curr)[TENSOR_IDX(n - 2, n - 1, n - 1, n)];
+        v += 2 * (*curr)[TENSOR_IDX(n - 1, n - 2, n - 1, n)];
+        v += 2 * (*curr)[TENSOR_IDX(n - 1, n - 1, n - 2, n)];
+        v -= delta * delta * source[TENSOR_IDX(n - 1, n - 1, n - 1, n)];
+        v /= 6;
+        (*next)[TENSOR_IDX(n - 1, n - 1, n - 1, n)] = v;
+      }
+    }
+#pragma omp for
+    // Inner Cube
+    for (i = 1; i < n - 1; i++)
+    {
+      for (j = 1; j < n - 1; j++)
+      {
+        for (k = 1; k < n - 1; k++)
         {
-          for (k = 1; k < n - 1; k++)
-          {
-            v = 0;
-            v += (*curr)[TENSOR_IDX(i - 1, j, k, n)];
-            v += (*curr)[TENSOR_IDX(i, j - 1, k, n)];
-            v += (*curr)[TENSOR_IDX(i, j, k - 1, n)];
-            v += (*curr)[TENSOR_IDX(i, j, k + 1, n)];
-            v += (*curr)[TENSOR_IDX(i, j + 1, k, n)];
-            v += (*curr)[TENSOR_IDX(i + 1, j, k, n)];
-            v -= delta * delta * source[TENSOR_IDX(i, j, k, n)];
-            v /= 6;
-            (*next)[TENSOR_IDX(i, j, k, n)] = v;
-          }
+          v = 0;
+          v += (*curr)[TENSOR_IDX(i - 1, j, k, n)];
+          v += (*curr)[TENSOR_IDX(i, j - 1, k, n)];
+          v += (*curr)[TENSOR_IDX(i, j, k - 1, n)];
+          v += (*curr)[TENSOR_IDX(i, j, k + 1, n)];
+          v += (*curr)[TENSOR_IDX(i, j + 1, k, n)];
+          v += (*curr)[TENSOR_IDX(i + 1, j, k, n)];
+          v -= delta * delta * source[TENSOR_IDX(i, j, k, n)];
+          v /= 6;
+          (*next)[TENSOR_IDX(i, j, k, n)] = v;
         }
       }
     }
-
-    // auto time_stop = std::chrono::high_resolution_clock::now();
-    // auto duration = std::chrono::duration_cast<std::chrono::microseconds>(time_stop - time_start);
-
-    // Initialise barrier condition
-    bool original_curr_it = original_curr;
-
-    lock.lock();
-    // std::cout << "Thread " << thread_num << ": " << duration.count() << std::endl;
-
-    // Notify if barrier is met
-    if (++threads_waiting == threads)
+#pragma omp single
     {
-      threads_waiting = 0;
       std::vector<double> *temp = curr;
       curr = next;
       next = temp;
-      original_curr = !original_curr;
-      barrier.notify_all();
     }
-    else
-      barrier.wait(lock, [&original_curr_it, this]()
-                   { return original_curr_it != original_curr; });
-    lock.unlock();
   }
-}
-
-std::vector<double> *PoissonSolver::solve(void)
-{
-  auto time_start = std::chrono::high_resolution_clock::now();
-
-  std::vector<std::thread> threads_vec(threads);
-
-  for (int i = 0; i < threads; ++i)
-  {
-    threads_vec[i] = std::thread(&PoissonSolver::poisson_thread, this, i);
-  }
-
-  for (auto &thread : threads_vec)
-    thread.join();
-
   auto time_stop = std::chrono::high_resolution_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::microseconds>(time_stop - time_start);
   std::cout << "Duration: " << duration.count() << std::endl;
