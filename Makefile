@@ -3,11 +3,11 @@ all: poisson
 # -g outputs debugging information
 # -Wall enables all warnings
 # -pthread configures threading
-CFLAGS = -g -Wall -pthread -fopenmp -O3
-CC = g++
+CXX = g++
+CXXFLAGS = -g -Wall -fopenmp -std=c++11 -lstdc++ -O3
 
 poisson: poisson.cpp poisson_solver.cpp
-	$(CC) -o $@ $^ $(CFLAGS)
+	$(CXX) -o $@ $^ $(CXXFLAGS)
 
 .PHONY: disassembly
 disassembly: poisson.s
