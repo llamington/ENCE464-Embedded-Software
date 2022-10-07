@@ -11,4 +11,7 @@ _minted-*/
 
 venv/
 .vscode/
+
+benchmark.json
 *.png
+benchmark.csv
