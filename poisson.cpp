@@ -67,10 +67,10 @@ int main(int argc, char *argv[])
     }
 
     // Create a source term with a single point in the centre
-    std::vector<double> source;
+    std::vector<float> source;
     try
     {
-        source = std::vector<double>(n * n * n, 0);
+        source = std::vector<float>(n * n * n, 0);
     }
     catch (std::bad_alloc &)
     {

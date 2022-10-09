@@ -7,7 +7,7 @@
 #include <omp.h>
 
 PoissonSolver::PoissonSolver(int n,
-                             const std::vector<double> &source,
+                             const std::vector<float> &source,
                              int iterations,
                              int threads,
                              float delta,
@@ -17,17 +17,17 @@ PoissonSolver::PoissonSolver(int n,
       iterations(iterations),
       threads(threads),
       delta(delta),
-      curr(new std::vector<double>(n * n * n, 0)),
-      next(new std::vector<double>(n * n * n)) {}
+      curr(new std::vector<float>(n * n * n, 0)),
+      next(new std::vector<float>(n * n * n)) {}
 
-std::vector<double> *PoissonSolver::solve(void)
+std::vector<float> *PoissonSolver::solve(void)
 {
   auto time_start = std::chrono::high_resolution_clock::now();
 
 #pragma omp parallel shared(curr, next, source, delta, n, iterations)
   for (uint16_t iter = 0; iter < iterations; iter++)
   {
-    double v = 0;
+    float v = 0;
     int i, j, k;
 #pragma omp sections nowait
     {
@@ -371,7 +371,7 @@ std::vector<double> *PoissonSolver::solve(void)
     }
 #pragma omp single
     {
-      std::vector<double> *temp = curr;
+      std::vector<float> *temp = curr;
       curr = next;
       next = temp;
     }
