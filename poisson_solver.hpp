@@ -11,7 +11,7 @@ private:
     const int iterations;
     const int threads;
     const float delta;
-    bool debug = false;
+    const bool debug;
     std::vector<float> *curr;
     std::vector<float> *next;
 

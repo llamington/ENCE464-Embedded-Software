@@ -17,8 +17,12 @@ PoissonSolver::PoissonSolver(int n,
       iterations(iterations),
       threads(threads),
       delta(delta),
+      debug(debug),
       curr(new std::vector<float>(n * n * n, 0)),
-      next(new std::vector<float>(n * n * n)) {}
+      next(new std::vector<float>(n * n * n))
+{
+  omp_set_num_threads(threads);
+}
 
 std::vector<float> *PoissonSolver::solve(void)
 {

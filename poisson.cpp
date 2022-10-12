@@ -2,15 +2,17 @@
 #include "util.hpp"
 #include <iomanip>
 #include <iostream>
+#include <omp.h>
 #include <string>
 #include <vector>
 
+#define DELTA 0.1
+
 int main(int argc, char *argv[])
 {
-    int threads = 1;
-    int n = 5;
-    float delta = 1;
-    int iterations = 10;
+    int threads = omp_get_max_threads() - 3;
+    int n = 7;
+    int iterations = 300;
     bool debug = false;
     std::string temp_arg;
 
@@ -80,7 +82,7 @@ int main(int argc, char *argv[])
 
     source[TENSOR_IDX(n / 2, n / 2, n / 2, n)] = 1;
 
-    PoissonSolver poisson_solver(n, source, iterations, threads, delta, debug);
+    PoissonSolver poisson_solver(n, source, iterations, threads, DELTA, debug);
     // Calculate the resulting field with Neumann conditions
     auto result = poisson_solver.solve();
 
