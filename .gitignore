@@ -15,4 +15,4 @@ venv/
 
 benchmark.json
 *.png
-benchmark.csv
+*.csv
