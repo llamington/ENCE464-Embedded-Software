@@ -1,15 +1,15 @@
 all: poisson
 
 CXX = g++
-CXXFLAGS = -g -Wall -fopenmp -std=c++11 -lstdc++ -I. -O3 -march=native -flto
+CXXFLAGS = -g -Wall -fopenmp -std=c++11 -lstdc++ -I. -march=native -flto $(OPT_FLAG)
 DEPS = poisson_solver.hpp util.hpp
 OBJ = poisson_solver.o poisson.o 
 
 %.o: %.cpp $(DEPS)
-	$(CXX) -c -o $@ $< $(CXXFLAGS)
+	$(CXX) -c -o $@ $(CXXFLAGS) $< 
 
 poisson: $(OBJ)
-	$(CXX) -o $@ $^ $(CXXFLAGS)
+	$(CXX) -o $@ $(CXXFLAGS) $^ 
 
 .PHONY: disassembly
 disassembly: poisson.s
