@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 
-#define DELTA 0.1
+#define DELTA 1.0
 
 int main(int argc, char *argv[])
 {

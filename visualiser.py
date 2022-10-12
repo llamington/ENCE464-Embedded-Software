@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+"""Script for generating poisson solver diagrams"""
+
 import matplotlib.pyplot as plt
 import numpy as np
 import sys
