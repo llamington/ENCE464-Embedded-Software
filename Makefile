@@ -1,7 +1,7 @@
 all: poisson
 
 CXX = g++
-CXXFLAGS = -g -Wall -fopenmp -std=c++11 -lstdc++ -I. -O3
+CXXFLAGS = -g -Wall -fopenmp -std=c++11 -lstdc++ -I. -O3 -march=native
 DEPS = poisson_solver.hpp util.hpp
 OBJ = poisson_solver.o poisson.o 
 
